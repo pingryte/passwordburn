@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { page } from '$app/stores'
-  import { supabase } from '$lib/supabase'
+  import { getSupabase } from '$lib/supabase'
   import { decrypt } from '$lib/crypto'
 
   let loading = true
@@ -9,7 +9,13 @@
   let decryptedSecret: string | null = null
 
   onMount(async () => {
+    const supabase = getSupabase()
     const id = $page.params.id
+    if (!id) {
+      error = 'Invalid or missing secret ID.'
+      loading = false
+      return
+    }
     const keyB64 = window.location.hash?.slice(1)
 
     if (!keyB64) {
@@ -31,7 +37,7 @@
     }
 
     try {
-      decryptedSecret = await decrypt(data.ciphertext, data.iv, keyB64)
+      decryptedSecret = await decrypt(data.ciphertext as string, data.iv as string, keyB64)
 
       // Mark as viewed
       await supabase
@@ -39,7 +45,11 @@
         .delete()
         .eq('id', id)
     } catch (e) {
-      error = 'Failed to decrypt secret.'
+      if (e instanceof Error) {
+        error = `Failed to decrypt secret: ${e.message}`
+      } else {
+        error = 'Failed to decrypt secret.'
+      }
     }
 
     loading = false

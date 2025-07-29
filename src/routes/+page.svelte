@@ -1,11 +1,55 @@
 <script lang="ts">
+  console.log("ENV TEST", import.meta.env.PUBLIC_SUPABASE_URL);
+  import { generateKey, encrypt } from '$lib/crypto';
+  import { getSupabase } from '$lib/supabase';
+  import { goto } from '$app/navigation';
+
   let secret = '';
   let expiry = '10m';
 
-  const handleSubmit = () => {
-    console.log('Secret:', secret);
-    console.log('Expiry:', expiry);
-    // TODO: Replace with Supabase call
+  const handleSubmit = async () => {
+    const supabase = getSupabase();
+
+    if (!secret.trim()) {
+      alert("Secret cannot be empty.");
+      return;
+    }
+
+    console.log("Submitting secret:", secret);
+    console.log("Expiry:", expiry);
+
+    const key = await generateKey();
+    const { ciphertext, iv, rawKey } = await encrypt(secret, key);
+
+    const now = new Date();
+    let expires_at = null;
+    if (expiry !== 'one-time') {
+      const multiplierMap = { '10m': 10, '1h': 60, '1d': 1440 };
+      const multiplier = multiplierMap[expiry as keyof typeof multiplierMap];
+
+      if (multiplier === undefined) {
+        alert('Invalid expiry value');
+        return;
+      }
+
+      expires_at = new Date(now.getTime() + multiplier * 60000).toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('secrets')
+      .insert([{ ciphertext, iv, expires_at }])
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      alert('Error saving secret');
+      console.error(error);
+      return;
+    }
+
+    console.log("Generated share link:", `/s/${data.id}#${rawKey}`);
+
+    goto(`/s/${data.id}#${rawKey}`);
   };
 </script>
 
