@@ -23,7 +23,7 @@
     const { ciphertext, iv, rawKey } = await encrypt(secret, key);
 
     const now = new Date();
-    let expires_at = null;
+    let expires_at: string | null = null;
     if (expiry !== 'one-time') {
       const multiplierMap = { '10m': 10, '1h': 60, '1d': 1440 };
       const multiplier = multiplierMap[expiry as keyof typeof multiplierMap];
