@@ -30,3 +30,24 @@ export async function encrypt(secret: string, key: CryptoKey): Promise<{
         rawKey: rawKeyB64
     };
 }
+export async function decrypt(ciphertextB64: string, ivB64: string, rawKeyB64: string): Promise<string> {
+    const ciphertext = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
+    const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+    const rawKey = Uint8Array.from(atob(rawKeyB64), c => c.charCodeAt(0));
+
+    const key = await crypto.subtle.importKey(
+        "raw",
+        rawKey,
+        { name: "AES-GCM" },
+        false,
+        ["decrypt"]
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
