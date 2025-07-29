@@ -17,17 +17,21 @@
 
   const viewSecret = async () => {
     if (!data || viewed) return
-    hasViewed = true
+
     try {
       decryptedSecret = await decrypt(data.ciphertext as string, data.iv as string, keyB64)
       viewed = true
 
       if (!data.expires_at) {
-        await supabase
-          .from('secrets')
-          .delete()
-          .eq('id', id)
+        const { error: deleteError } = await supabase.from('secrets').delete().eq('id', id)
+        if (deleteError) {
+          console.error('❌ Failed to delete secret:', deleteError.message)
+        } else {
+          console.log('✅ Secret deleted after one-time view.')
+        }
       }
+
+      hasViewed = true
     } catch (e) {
       if (e instanceof Error) {
         error = `Failed to decrypt secret: ${e.message}`
@@ -65,29 +69,28 @@
       return
     }
 
-    if (typeof fetchedData.expires_at === 'string' && new Date(fetchedData.expires_at) < new Date()) {
-      error = 'This secret has expired.'
-      loading = false
-      return
-    }
-
     data = fetchedData
 
-    const expiry = new Date(fetchedData.expires_at as string)
-    const now = new Date()
-    const diffMs = expiry.getTime() - now.getTime()
+    if (typeof fetchedData.expires_at === 'string' || typeof fetchedData.expires_at === 'number' || fetchedData.expires_at instanceof Date) {
+      const expiry = new Date(fetchedData.expires_at)
+      const now = new Date()
 
-    if (diffMs <= 0) {
-      error = 'This secret has expired.'
-      loading = false
-      return
+      if (expiry < now) {
+        error = 'This secret has expired.'
+        loading = false
+        return
+      }
+
+      const diffMs = expiry.getTime() - now.getTime()
+      const diffMinutes = Math.round(diffMs / 60000)
+
+      if (diffMinutes <= 10) expiryLabel = '10 minutes'
+      else if (diffMinutes <= 60) expiryLabel = '1 hour'
+      else if (diffMinutes <= 1440) expiryLabel = '1 day'
+      else expiryLabel = `${Math.round(diffMinutes / 1440)} days`
+    } else {
+      expiryLabel = 'one-time view'
     }
-
-    const diffMinutes = Math.round(diffMs / 60000)
-    if (diffMinutes <= 10) expiryLabel = '10 minutes'
-    else if (diffMinutes <= 60) expiryLabel = '1 hour'
-    else if (diffMinutes <= 1440) expiryLabel = '1 day'
-    else expiryLabel = `${Math.round(diffMinutes / 1440)} days`
 
     loading = false
   })
