@@ -36,7 +36,7 @@
       // Mark as viewed
       await supabase
         .from('secrets')
-        .update({ viewed: true })
+        .delete()
         .eq('id', id)
     } catch (e) {
       error = 'Failed to decrypt secret.'
@@ -55,6 +55,15 @@
     <div class="bg-gray-100 border p-4 rounded-md text-left mt-4">
       <p class="font-mono whitespace-pre-wrap">{decryptedSecret}</p>
     </div>
+    <button
+      class="mt-4 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+      on:click={() => decryptedSecret && navigator.clipboard.writeText(decryptedSecret)}
+    >
+      📋 Copy to Clipboard
+    </button>
+    <a href="/" class="mt-6 block text-blue-600 hover:underline">
+      ← Create a new secret
+    </a>
     <p class="mt-4 text-sm text-gray-500">⚠️ This secret is no longer available after this view.</p>
   {/if}
 </main>
