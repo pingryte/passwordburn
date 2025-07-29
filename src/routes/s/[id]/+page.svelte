@@ -67,7 +67,12 @@
     </div>
     <button
       class="mt-4 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
-      on:click={() => decryptedSecret && navigator.clipboard.writeText(decryptedSecret)}
+      on:click={() => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url)
+          .then(() => console.log('Copied URL to clipboard'))
+          .catch((err) => console.error('Copy failed', err));
+      }}
     >
       📋 Copy to Clipboard
     </button>

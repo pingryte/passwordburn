@@ -6,6 +6,7 @@
 
   let secret = '';
   let expiry = '10m';
+  let generatedUrl: string | null = null;
 
   const handleSubmit = async () => {
     const supabase = getSupabase();
@@ -47,9 +48,8 @@
       return;
     }
 
-    console.log("Generated share link:", `/s/${data.id}#${rawKey}`);
-
-    goto(`/s/${data.id}#${rawKey}`);
+    const url = `${window.location.origin}/s/${data.id}#${rawKey}`;
+    generatedUrl = url;
   };
 </script>
 
@@ -83,4 +83,19 @@
   >
     🔗 Generate Link
   </button>
+
+  {#if generatedUrl}
+    <div class="mt-6 bg-gray-100 p-4 rounded-md">
+      <p class="break-all font-mono text-sm">{generatedUrl}</p>
+      <button
+        class="mt-2 bg-black text-white px-4 py-2 rounded"
+        on:click={() => {
+          if (generatedUrl) navigator.clipboard.writeText(generatedUrl);
+        }}
+      >
+        📋 Copy Link
+      </button>
+    </div>
+    <p class="mt-4 text-sm text-gray-500">⚠️ This link will expire after one view.</p>
+  {/if}
 </main>
