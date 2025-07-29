@@ -13,6 +13,7 @@
   let id: string = ''
   let hasViewed = false
   let supabase: ReturnType<typeof getSupabase>
+  let expiryLabel = 'unknown duration'
 
   const viewSecret = async () => {
     if (!data || viewed) return
@@ -71,6 +72,23 @@
     }
 
     data = fetchedData
+
+    const expiry = new Date(fetchedData.expires_at as string)
+    const now = new Date()
+    const diffMs = expiry.getTime() - now.getTime()
+
+    if (diffMs <= 0) {
+      error = 'This secret has expired.'
+      loading = false
+      return
+    }
+
+    const diffMinutes = Math.round(diffMs / 60000)
+    if (diffMinutes <= 10) expiryLabel = '10 minutes'
+    else if (diffMinutes <= 60) expiryLabel = '1 hour'
+    else if (diffMinutes <= 1440) expiryLabel = '1 day'
+    else expiryLabel = `${Math.round(diffMinutes / 1440)} days`
+
     loading = false
   })
 </script>
@@ -93,7 +111,7 @@
         <p class="font-mono whitespace-pre-wrap">{decryptedSecret}</p>
       </div>
       <p class="mt-2 text-sm text-gray-500">
-        ⏳ This secret was set to expire after {data.expires_in_minutes} minute(s).
+        ⏳ This secret was set to expire after <strong>{expiryLabel}</strong>.
       </p>
       <button
         class="mt-4 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
